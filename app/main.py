@@ -1,6 +1,8 @@
 """FastAPI application entry point."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from app.api.chat import router as chat_router
 from app.api.health import router as health_router
 from app.config import get_settings
 
@@ -8,7 +10,12 @@ settings = get_settings()
 app = FastAPI(title=settings.app_name, description="A source-grounded Indian legal-information assistant. Not a lawyer and not a substitute for professional legal advice.", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=settings.allowed_origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(chat_router, prefix="/api/v1")
 
-@app.get("/", tags=["meta"])
-def root() -> dict[str, str]:
+@app.get("/", response_class=HTMLResponse, tags=["web"])
+def home() -> str:
+    return '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#132238"><title>Indian Law AI Assistant</title><style>*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:#172437;font:16px system-ui,sans-serif}.wrap{max-width:760px;margin:auto;padding:24px 16px}.hero{background:#132238;color:white;border-radius:20px;padding:24px}.tag{color:#b9d7ff;font-size:13px;letter-spacing:.08em;text-transform:uppercase}h1{margin:8px 0;font-size:clamp(27px,6vw,40px)}p{line-height:1.6}.panel{background:white;border:1px solid #dce4ef;border-radius:16px;padding:18px;margin-top:16px}label{display:block;font-weight:650;margin:12px 0 7px}select,textarea,button{font:inherit;width:100%;border-radius:10px;padding:12px;border:1px solid #c6d2e1}textarea{min-height:120px;resize:vertical}button{background:#155eef;color:white;border:0;font-weight:700;margin-top:12px;cursor:pointer}button:disabled{opacity:.6}.notice{font-size:13px;color:#526176}#answer{white-space:pre-wrap;line-height:1.65}footer{font-size:13px;color:#526176;padding:16px 2px}</style></head><body><main class="wrap"><header class="hero"><div class="tag">Source-first · English / हिन्दी</div><h1>Indian Law AI Assistant</h1><p>Understand Indian law in plain language, with a focus on official sources. This early version will tell you when verified legal evidence is not yet available.</p></header><section class="panel"><form id="ask"><label for="language">Answer language</label><select id="language"><option value="en">English</option><option value="hi">हिन्दी</option></select><label for="question">Your legal question</label><textarea id="question" minlength="3" maxlength="2000" required placeholder="Example: What should I do if I receive a legal notice?"></textarea><button id="submit" type="submit">Check available sources</button></form><p class="notice">Avoid entering Aadhaar numbers, passwords, full addresses, or other sensitive personal information.</p></section><section class="panel" id="result" hidden aria-live="polite"><h2>Result</h2><p id="answer"></p><p class="notice" id="disclaimer"></p></section><footer>Legal information only, not legal advice. Law can depend on facts, jurisdiction, dates, and amendments. For urgent danger in India, call 112.</footer></main><script>const form=document.querySelector('#ask'),btn=document.querySelector('#submit'),result=document.querySelector('#result');form.addEventListener('submit',async e=>{e.preventDefault();btn.disabled=true;btn.textContent='Checking…';result.hidden=false;document.querySelector('#answer').textContent='';try{const r=await fetch('/api/v1/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:document.querySelector('#question').value,language:document.querySelector('#language').value})});const data=await r.json();if(!r.ok)throw new Error('Request failed');document.querySelector('#answer').textContent=data.answer;document.querySelector('#disclaimer').textContent=data.disclaimer}catch(err){document.querySelector('#answer').textContent='The service could not complete your request. Please check your connection and try again.';document.querySelector('#disclaimer').textContent='No legal conclusion has been generated.'}finally{btn.disabled=false;btn.textContent='Check available sources'}});</script></body></html>'''
+
+@app.get("/api/v1", tags=["meta"])
+def api_info() -> dict[str, str]:
     return {"name": settings.app_name, "status": "foundation", "disclaimer": "General legal information only; not legal advice.", "docs": "/docs"}
