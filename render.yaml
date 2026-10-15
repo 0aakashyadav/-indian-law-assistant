@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: indian-law-assistant
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
